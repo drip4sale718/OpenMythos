@@ -166,6 +166,29 @@ Key design choices:
 | Schedule | Linear warmup (2000 steps) → cosine decay |
 | Target | 30B tokens (~Chinchilla-adjusted for looped architecture) |
 
+### Audio and Video Input
+
+OpenMythos reads text, so speech reaches it as a transcript. `open_mythos.speech` wraps [Whisper](https://github.com/openai/whisper) to transcribe any file `ffmpeg` can decode (wav, mp3, mp4, webm, ...) and packs the transcripts into `(input, target)` pairs, the same way the FineWeb-Edu loader does.
+
+```bash
+pip install openai-whisper   # also needs ffmpeg on PATH
+```
+
+```python
+from torch.utils.data import DataLoader
+from open_mythos import MythosTokenizer, TranscriptDataset, WhisperTranscriber
+
+transcribe = WhisperTranscriber("base", language="en")
+print(transcribe("talk.mp4"))
+
+ds = TranscriptDataset(["talk.mp4", "podcast.mp3"], MythosTokenizer(), seq_len=512,
+                       transcriber=transcribe)
+for x, y in DataLoader(ds, batch_size=8):
+    ...
+```
+
+Whisper is only imported when a transcriber is first used. You can pass any `path -> str` callable as `transcriber`, for example one that reads transcripts saved earlier. A runnable demo is at [`examples/speech_example.py`](examples/speech_example.py).
+
 ---
 
 ## Documentation
