@@ -15,6 +15,12 @@ from open_mythos.main import (
     loop_index_embedding,
     precompute_rope_freqs,
 )
+from open_mythos.speech import (
+    CrvTranscriber,
+    TranscriptDataset,
+    VideoTranscript,
+    WhisperTranscriber,
+)
 from open_mythos.tokenizer import MythosTokenizer
 from open_mythos.variants import (
     mythos_1b,
@@ -52,4 +58,8 @@ __all__ = [
     "load_tokenizer",
     "get_vocab_size",
     "MythosTokenizer",
+    "WhisperTranscriber",
+    "CrvTranscriber",
+    "VideoTranscript",
+    "TranscriptDataset",
 ]

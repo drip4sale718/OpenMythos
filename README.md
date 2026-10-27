@@ -166,6 +166,47 @@ Key design choices:
 | Schedule | Linear warmup (2000 steps) → cosine decay |
 | Target | 30B tokens (~Chinchilla-adjusted for looped architecture) |
 
+### Audio and Video Input
+
+OpenMythos reads text, so speech reaches it as a transcript. `open_mythos.speech` wraps [Whisper](https://github.com/openai/whisper) to transcribe any file `ffmpeg` can decode (wav, mp3, mp4, webm, ...) and packs the transcripts into `(input, target)` pairs, the same way the FineWeb-Edu loader does.
+
+```bash
+pip install openai-whisper   # also needs ffmpeg on PATH
+```
+
+```python
+from torch.utils.data import DataLoader
+from open_mythos import MythosTokenizer, TranscriptDataset, WhisperTranscriber
+
+transcribe = WhisperTranscriber("base", language="en")
+print(transcribe("talk.mp4"))
+
+ds = TranscriptDataset(["talk.mp4", "podcast.mp3"], MythosTokenizer(), seq_len=512,
+                       transcriber=transcribe)
+for x, y in DataLoader(ds, batch_size=8):
+    ...
+```
+
+Whisper is only imported when a transcriber is first used. You can pass any `path -> str` callable as `transcriber`, for example one that reads transcripts saved earlier. A runnable demo is at [`examples/speech_example.py`](examples/speech_example.py).
+
+For video, `CrvTranscriber` uses [claude-real-video](https://github.com/HUANGCHIHHUNGLeo/claude-real-video) instead. It accepts URLs as well as files, uses a video's own subtitles when it has them (skipping Whisper), and keeps one timestamped keyframe per scene change. OpenMythos trains on the text only; the frames are returned for inspection.
+
+```bash
+pip install "claude-real-video[whisper]"
+```
+
+```python
+from open_mythos import CrvTranscriber
+
+crv = CrvTranscriber(lang="en")
+video = crv.process("https://www.youtube.com/watch?v=...")
+print(video.text)                  # transcript, one segment per line
+print(video.segments[0])           # {"start": 0.5, "end": 2.0, "text": "..."}
+print(video.frames[0])             # {"path": ".../frame_001.jpg", "timestamp_sec": 0.0, ...}
+
+ds = TranscriptDataset(video_urls, MythosTokenizer(), seq_len=512, transcriber=crv)
+```
+
 ---
 
 ## Documentation
